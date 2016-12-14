@@ -10,7 +10,14 @@ go:
 sudo: false
 
 script:
-    go test
+  - for d in $(go list github.com/constabulary/importer/...); do
+      go test -coverprofile=profile.out $d
+
+      if [ -f profile.out ]; then
+        cat profile.out >> coverage.txt
+        rm profile.out
+      fi
+    done
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
