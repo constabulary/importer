@@ -19,6 +19,19 @@ type Importer interface {
 
 	// Import imports the package from importpath.
 	Import(importpath string) (*build.Package, error)
+
+	// Before searchs this importer before the child.
+	Before(child Importer) Importer
+
+	// After searches this importer after the child.
+	After(child Importer) Importer
+}
+
+// ImporterFn converts a func(string) (*build.Package, error) to an Importer.
+type ImporterFn func(importpath string) (*build.Package, error)
+
+func (fn ImporterFn) Import(importpath string) (*build.Package, error) {
+	return fn(importpath)
 }
 
 // GOROOT returns an Importer which loads packages from the standard library.
@@ -81,6 +94,33 @@ func (i *srcdirImporter) Import(importpath string) (*build.Package, error) {
 	}
 	err = loadPackage(importpath, dir)
 	return p, err
+}
+
+func (i *srcdirImporter) Before(child Importer) Importer {
+	return &delegateImporter{
+		Importer:    i,
+		subordinate: child,
+	}
+}
+
+func (i *srcdirImporter) After(child Importer) Importer {
+	return &delegateImporter{
+		Importer:    child,
+		subordinate: i,
+	}
+}
+
+type delegateImporter struct {
+	Importer             // first
+	subordinate Importer // second
+}
+
+func (i *delegateImporter) Import(importpath string) (*build.Package, error) {
+	pkg, err := i.Importer.Import(importpath)
+	if err != nil {
+		return i.subordinate.Import(importpath)
+	}
+	return pkg, nil
 }
 
 type importErr struct {
