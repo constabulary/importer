@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func TestSrcDirImporter(t *testing.T) {
+func TestSrcDirImporterImport(t *testing.T) {
 	i := &srcdirImporter{
 		Context: &build.Default,
 		root:    runtime.GOROOT(),
